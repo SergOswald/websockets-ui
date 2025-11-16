@@ -5,8 +5,7 @@
   "main": "server.ts",
   "scripts": {
     "start": "cross-env NODE_ENV=production ts-node server.ts",
-    "dev": "cross-env NODE_ENV=development ts-node-dev --respawn --transpile-only server.ts",
-    "lint": "echo \"No linter configured\""
+    "dev": "ts-node-dev --respawn --transpile-only server.ts"
   },
   "dependencies": {
     "ws": "^8.13.0",
@@ -16,7 +15,6 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "ts-node": "^10.9.1",
-    "ts-node-dev": "^2.0.0",
     "@types/ws": "^8.5.4"
   }
 }
