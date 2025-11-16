@@ -4,14 +4,7 @@ import fs from "fs";
 import WebSocket, { WebSocketServer } from "ws";
 
 const PORT = 8181;
-
-// __dirname = dist/ после сборки
-// front лежит на уровень выше → websockets-ui/front
 const FRONT_DIR = path.join(__dirname, "..", "front");
-
-//----------------------------------------
-// STATIC SERVER
-//----------------------------------------
 
 const mimeTypes: Record<string, string> = {
     ".html": "text/html",
@@ -26,6 +19,9 @@ const mimeTypes: Record<string, string> = {
     ".json": "application/json"
 };
 
+//----------------------------------------------------
+// STATIC SERVER
+//----------------------------------------------------
 const server = http.createServer((req, res) => {
     let urlPath = req.url === "/" ? "/index.html" : req.url!;
     let filePath = path.join(FRONT_DIR, urlPath);
@@ -44,28 +40,31 @@ const server = http.createServer((req, res) => {
         }
 
         const ext = path.extname(filePath);
-        const mime = mimeTypes[ext] || "application/octet-stream";
-
-        res.writeHead(200, { "Content-Type": mime });
+        res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
         res.end(content);
     });
 });
 
-//----------------------------------------
+//----------------------------------------------------
 // WEBSOCKET SERVER
-//----------------------------------------
-
+//----------------------------------------------------
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", ws => {
     console.log("WS connected");
 
+    // отправляем JSON, а не строку!
+    ws.send(JSON.stringify({ type: "CONNECTED" }));
+
     ws.on("message", msg => {
         console.log("Message:", msg.toString());
-        ws.send("OK: " + msg.toString());
+        ws.send(
+            JSON.stringify({
+                type: "MESSAGE",
+                data: msg.toString()
+            })
+        );
     });
-
-    ws.send("CONNECTED");
 });
 
 server.listen(PORT, () => {

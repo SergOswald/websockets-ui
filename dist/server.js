@@ -8,15 +8,7 @@ const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const ws_1 = require("ws");
 const PORT = 8181;
-// ----------------------------
-// ПАПКА со статикой
-// ----------------------------
-// Берём путь относительно корня проекта, а НЕ относительно dist!
-const FRONT_DIR = path_1.default.resolve(process.cwd(), "front");
-console.log("FRONT_DIR:", FRONT_DIR);
-// ----------------------------
-// MIME TYPES
-// ----------------------------
+const FRONT_DIR = path_1.default.join(__dirname, "..", "front");
 const mimeTypes = {
     ".html": "text/html",
     ".js": "application/javascript",
@@ -29,14 +21,12 @@ const mimeTypes = {
     ".mp4": "video/mp4",
     ".json": "application/json"
 };
-// ----------------------------
-// STATIC HTTP SERVER
-// ----------------------------
+//----------------------------------------------------
+// STATIC SERVER
+//----------------------------------------------------
 const server = http_1.default.createServer((req, res) => {
     let urlPath = req.url === "/" ? "/index.html" : req.url;
     let filePath = path_1.default.join(FRONT_DIR, urlPath);
-    console.log("TRY:", filePath);
-    // Защита от перехода ".."
     if (!filePath.startsWith(FRONT_DIR)) {
         res.writeHead(403);
         res.end("Forbidden");
@@ -49,26 +39,26 @@ const server = http_1.default.createServer((req, res) => {
             return;
         }
         const ext = path_1.default.extname(filePath);
-        const mime = mimeTypes[ext] || "application/octet-stream";
-        res.writeHead(200, { "Content-Type": mime });
+        res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
         res.end(content);
     });
 });
-// ----------------------------
+//----------------------------------------------------
 // WEBSOCKET SERVER
-// ----------------------------
+//----------------------------------------------------
 const wss = new ws_1.WebSocketServer({ server });
 wss.on("connection", ws => {
     console.log("WS connected");
+    // отправляем JSON, а не строку!
+    ws.send(JSON.stringify({ type: "CONNECTED" }));
     ws.on("message", msg => {
         console.log("Message:", msg.toString());
-        ws.send("OK: " + msg.toString());
+        ws.send(JSON.stringify({
+            type: "MESSAGE",
+            data: msg.toString()
+        }));
     });
-    ws.send("CONNECTED");
 });
-// ----------------------------
-// START
-// ----------------------------
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
