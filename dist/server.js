@@ -197,7 +197,6 @@ wss.on("connection", (ws, req) => {
         switch (type) {
             // registration/login
             case "reg": {
-                // data: { name, password }
                 const name = data?.name;
                 const password = data?.password;
                 if (!name || !password) {
@@ -211,7 +210,7 @@ wss.on("connection", (ws, req) => {
                 }
                 const rec = Players.get(pid);
                 rec.ws = ws;
-                // respond with status ok and playerId (global)
+                ws.playerId = rec.playerId; // <------------------------ ДОБАВИТЬ!
                 sendWS(ws, "reg", { status: "ok", playerId: pid });
                 broadcastUpdateRooms();
                 broadcastUpdateWinners();
@@ -288,6 +287,82 @@ wss.on("connection", (ws, req) => {
                         }
                     }
                 }
+                break;
+            }
+            // -----------------------------------------------------------
+            // PLAY WITH BOT
+            // -----------------------------------------------------------
+            case "single_play": {
+                // иногда клиент присылает пустую строку, тогда берём playerId из ws
+                let playerId = data?.playerId;
+                if (!playerId) {
+                    playerId = ws.playerId;
+                }
+                if (!playerId || !Players.has(playerId)) {
+                    sendWS(ws, "personal", { ok: false, message: "Unknown playerId" });
+                    break;
+                }
+                // создаём комнату
+                const roomId = (0, crypto_1.randomUUID)();
+                const botId = "BOT";
+                // регистрируем бота, если нет
+                if (!Players.has(botId)) {
+                    Players.set(botId, {
+                        playerId: botId,
+                        name: "Bot",
+                        password: "",
+                        score: 0,
+                        ws: undefined
+                    });
+                }
+                Rooms.set(roomId, {
+                    roomId,
+                    name: "Single Play Room",
+                    players: [playerId, botId],
+                    game: null
+                });
+                // создаём игру
+                const gameId = (0, crypto_1.randomUUID)();
+                const realPlayer = Players.get(playerId);
+                const gamePlayers = [
+                    {
+                        playerId,
+                        gamePlayerId: (0, crypto_1.randomUUID)(),
+                        ws: realPlayer.ws,
+                        login: realPlayer.name,
+                        playerIdx: 0,
+                        ships: undefined,
+                        killedShipCount: 0,
+                        shots: []
+                    },
+                    {
+                        playerId: botId,
+                        gamePlayerId: (0, crypto_1.randomUUID)(),
+                        ws: undefined,
+                        login: "Bot",
+                        playerIdx: 1,
+                        ships: undefined,
+                        killedShipCount: 0,
+                        shots: []
+                    }
+                ];
+                const game = {
+                    gameId,
+                    roomId,
+                    players: gamePlayers,
+                    currentTurnIndex: 0,
+                    boardSize: 10,
+                    finished: false
+                };
+                Rooms.get(roomId).game = game;
+                Games.set(gameId, game);
+                // отправляем клиенту create_game
+                sendWS(ws, "create_game", {
+                    gameId,
+                    gamePlayerId: gamePlayers[0].gamePlayerId,
+                    yourIdx: 0,
+                    opponent: "Bot"
+                });
                 break;
             }
             // player sends ships

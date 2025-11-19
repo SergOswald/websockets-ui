@@ -4,17 +4,19 @@
   "description": "WebSocket Battleship backend (TypeScript)",
   "main": "server.ts",
   "scripts": {
-   "start": "npm run build && node dist/server.js",
+    "start": "npm run build && node dist/server.js",
     "start:dev": "ts-node-dev --respawn --transpile-only server.ts",
     "build": "tsc"
   },
   "dependencies": {
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.0",
+    "uuid": "^13.0.0",
     "ws": "^8.13.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/uuid": "^11.0.0",
     "@types/ws": "^8.5.4",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
